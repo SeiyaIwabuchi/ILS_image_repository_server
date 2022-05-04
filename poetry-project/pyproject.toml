@@ -8,6 +8,8 @@ authors = ["SeiyaIwabuchi <0123ook@gmail.com>"]
 python = "^3.7"
 fastapi = "^0.75.2"
 uvicorn = "^0.17.6"
+aiofiles = "^0.8.0"
+python-multipart = "^0.0.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
