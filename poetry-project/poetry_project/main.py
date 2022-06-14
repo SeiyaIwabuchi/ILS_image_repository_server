@@ -10,7 +10,11 @@ staticDirectory = "./static"
 uploadsDirectory = os.path.join(staticDirectory,"uploads")
 app = FastAPI()
 
-
+try:
+    from .config import env
+except ModuleNotFoundError as e:
+    shutil.copyfile("./poetry_project/config.py.sample", "./poetry_project/config.py")
+    from .config import env
 
 if not os.path.exists(staticDirectory):
     os.mkdir(staticDirectory)
@@ -18,12 +22,8 @@ if not os.path.exists(staticDirectory):
 if not os.path.exists(uploadsDirectory):
     os.mkdir(uploadsDirectory)
     
-if not "ils_auth" in os.environ.keys():
-    print("The authentication information is not registered in the server. ex. 'ils_auth=token' like.")
-    quit()
-    
-if "hostname" in os.environ.keys():
-    myHostName = os.environ['hostname']
+if env["baseURL"] != "":
+    myHostName = env["baseURL"]
 else:
     myHostName = None
 
@@ -41,7 +41,7 @@ app.add_middleware(
 async def auth(request: Request, call_next):
     if(not request.method in ["GET", "OPTIONS"]):
         if "authorization" in request.headers.keys():
-                if request.headers["authorization"] == os.environ["ils_auth"]:
+                if request.headers["authorization"] == env["ils_auth"]:
                     return await call_next(request)
                 else:
                     content = {"info":"discord"}
@@ -55,9 +55,7 @@ async def auth(request: Request, call_next):
 async def getMyHostName(request : Request, call_next):
     global myHostName
     if myHostName == None:
-        urlHostName = request.base_url.hostname
-        urlPort = request.base_url.port
-        myHostName = f"{urlHostName}:{urlPort}"
+        myHostName = request.base_url
     return await call_next(request)
 
 @app.get("/")
@@ -72,13 +70,13 @@ async def post_image(file: UploadFile):
     fileName = f"{int(datetime.now().timestamp()*1e+6)}_{file.filename}"
     with open(f"./static/uploads/{fileName}", "wb") as f:
         shutil.copyfileobj(file.file, f)
-    return {"message": "success.","url":f"http://{myHostName}/static/uploads/{fileName}"}
+    return {"message": "success.","url":f"{myHostName}static/uploads/{fileName}"}
 
 @app.put("/image/{fileName}")
 def put_image(fileName : str, file: UploadFile):
     with open(f"./static/uploads/{fileName}", "wb") as f:
         shutil.copyfileobj(file.file, f)
-    return {"message": "success.","url":f"http://{myHostName}/static/uploads/{fileName}"}
+    return {"message": "success.","url":f"{myHostName}static/uploads/{fileName}"}
 
 @app.delete("/image/{fileName}")
 def delete_image(fileName : str):
